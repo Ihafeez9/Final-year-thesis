@@ -1,0 +1,26 @@
+#if defined(ARDUINO) && ARDUINO >= 100
+#include "Arduino.h"
+#include "SoftwareSerial.h"
+SoftwareSerial port(2,4);
+#else // Arduino 0022 -use modified NewSoftSerial
+#include "WProgram.h"
+#include "SoftwareSerial.h"
+NewSoftSerial port(2,4);
+#endif#
+include "EasyVR.h"
+EasyVR easyvr(port);
+//Groups and Commands
+enum Groups
+{
+GROUP_1  = 1,
+};
+enum Group1 
+{
+G1_FORWARD = 0,G1_BACK = 1,G1_RIGHT = 2,G1_LEFT = 3,};EasyVRBridge bridge;int8_t group, idx;const int // For back MotorPWM_A   = 3,DIR_A   = 12,BRAKE_A = 9,SNS_A   = A0,// for front motorPWM_B   = 11,DIR_B   = 13,BRAKE_B = 8,SNS_B   = A1;
+
+
+
+
+
+
+void setup(){// bridge mode?if (bridge.check()){
