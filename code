@@ -1,26 +1,146 @@
-#if defined(ARDUINO) && ARDUINO >= 100
-#include "Arduino.h"
-#include "SoftwareSerial.h"
-SoftwareSerial port(2,4);
-#else // Arduino 0022 -use modified NewSoftSerial
-#include "WProgram.h"
-#include "SoftwareSerial.h"
-NewSoftSerial port(2,4);
-#endif#
-include "EasyVR.h"
-EasyVR easyvr(port);
-//Groups and Commands
-enum Groups
-{
-GROUP_1  = 1,
-};
-enum Group1 
-{
-G1_FORWARD = 0,G1_BACK = 1,G1_RIGHT = 2,G1_LEFT = 3,};EasyVRBridge bridge;int8_t group, idx;const int // For back MotorPWM_A   = 3,DIR_A   = 12,BRAKE_A = 9,SNS_A   = A0,// for front motorPWM_B   = 11,DIR_B   = 13,BRAKE_B = 8,SNS_B   = A1;
-
-
-
-
-
-
-void setup(){// bridge mode?if (bridge.check()){
+#if defined(ARDUINO) && ARDUINO >= 100 
+  #include "Arduino.h" 
+  #include "SoftwareSerial.h" 
+  SoftwareSerial port(2,4); 
+#else // Arduino 0022 - use modified NewSoftSerial 
+  #include "WProgram.h" 
+  #include "SoftwareSerial.h" 
+  NewSoftSerial port(2,4); 
+#endif 
+#include "EasyVR.h" 
+EasyVR easyvr(port); //Groups and Commands 
+enum Groups 
+{ 
+  GROUP_1  = 1, 
+}; 
+ 
+enum Group1  	 
+{ 
+  G1_FORWARD = 0, 
+  G1_BACK = 1, 
+  G1_RIGHT = 2, 
+  G1_LEFT = 3, 
+}; 
+ 
+ 
+EasyVRBridge bridge; 
+ 
+int8_t group, idx; 
+ 
+const int  
+ 
+// For back Motor 
+PWM_A   = 3,  
+DIR_A   = 12, 	 
+BRAKE_A = 9, 
+SNS_A   = A0, 
+ 
+// for front motor 
+PWM_B   = 11, 
+DIR_B   = 13, 
+BRAKE_B = 8, 
+SNS_B   = A1; 
+ 
+void setup() 
+{ 
+// bridge mode?   if (bridge.check()) 
+  { 
+    cli(); 
+    bridge.loop(0, 1, 12, 13); 
+  } 
+  // run normally   Serial.begin(9600); 
+  port.begin(9600); 
+ 
+  if (!easyvr.detect()) 
+  { 
+    Serial.println("EasyVR not detected!"); 
+    for (;;); 
+  } 
+ 
+  easyvr.setPinOutput(EasyVR::IO1, LOW);   Serial.println("EasyVR detected!");   easyvr.setTimeout(5);   easyvr.setLanguage(0); 
+  group =1; 
+  //group = EasyVR::TRIGGER; //<-- start group (customize) 
+} 
+ 
+void action(); 
+ 
+void loop() 
+{ 
+  easyvr.setPinOutput(EasyVR::IO1, HIGH); // LED on (listening) 
+ 
+  Serial.print("Say a command in Group "); 
+  Serial.println(group);   easyvr.recognizeCommand(group); 
+ 
+  do 
+  { 
+    // can do some processing while waiting for a spoken command 
+  } 
+  while (!easyvr.hasFinished()); 
+   
+  easyvr.setPinOutput(EasyVR::IO1, LOW); // LED off 
+ 
+  idx = easyvr.getWord(); 
+  if (idx >= 0) 
+  { 
+    // built-in trigger (ROBOT) 
+    // group = GROUP_X; <-- jump to another group X     return; 
+  } 
+idx = easyvr.getCommand();   if (idx >= 0) 
+  { 
+    // print debug message     uint8_t train = 0;     char name[32];     Serial.print("Command: ");     Serial.print(idx); 
+    if (easyvr.dumpCommand(group, idx, name, train)) 
+    { 
+      Serial.print(" = "); 
+      Serial.println(name); 
+    }     else 
+      Serial.println(); 
+    easyvr.playSound(0, EasyVR::VOL_FULL); 
+    // perform some action     action(); 
+  } 
+  else // errors or timeout 
+  { 
+    if (easyvr.isTimeout()) 
+      Serial.println("Timed out, try again...");     int16_t err = easyvr.getError();     if (err >= 0) 
+    { 
+      Serial.print("Error "); 
+      Serial.println(err, HEX); 
+    } 
+  } 
+} 
+ 
+void action() 
+{ 
+    switch (group) 
+    { 
+    case GROUP_1: 
+      switch (idx) 
+{ 
+      case G1_FORWARD: 
+        digitalWrite(BRAKE_A, LOW); // setting brake LOW disable motor brake        
+        digitalWrite(DIR_A, HIGH); // for direction 
+        analogWrite(PWM_A, 100);   // Set the speed of the motor, 255 is the maximum  value         
+        delay(3000); // time analogWrite(PWM_A, 0); 
+       
+        // write your action code here 
+        // group = GROUP_X; <-- or jump to another group X for composite commands         break;       case G1_BACK: 
+       
+       
+         digitalWrite(BRAKE_A, LOW);  // setting again the brake LOW to disable motor brake 
+         digitalWrite(DIR_A, LOW);    // now change the direction to backward setting LOW the DIR_A pin          analogWrite(PWM_A, 100);           delay(3000);           analogWrite(PWM_A, 0);         // write your action code here 
+        // group = GROUP_X; <-- or jump to another group X for composite commands         break;       case G1_RIGHT: 
+       
+        digitalWrite(BRAKE_B, LOW);  // setting brake LOW disable motor brake         digitalWrite(DIR_B, HIGH);         digitalWrite(BRAKE_A, LOW);  // setting brake LOW disable motor brake         digitalWrite(DIR_A, HIGH);  analogWrite(PWM_A, 100); //By changing the value from 0-255, speed can be adjusted of motor B 
+  
+        analogWrite(PWM_B, 255);    // By changing the value from 0-255, speed can be          adjusted of motor B         delay(3000);         analogWrite(PWM_A, 0);         analogWrite(PWM_B, 0); 
+        // write your action code here 
+        // group = GROUP_X; <-- or jump to another group X for composite commands         break;       case G1_LEFT: 
+      digitalWrite(BRAKE_A, LOW);  // To disable motor brake       digitalWrite(DIR_A, HIGH);        digitalWrite(BRAKE_B, LOW);  // To disable motor brake       digitalWrite(DIR_B, 
+      LOW);       analogWrite(PWM_A, 100);        analogWrite(PWM_B, 255);  
+        
+       delay(3000);        analogWrite(PWM_A, 0);         analogWrite(PWM_B, 0); 
+        // write your action code here 
+        // group = GROUP_X; <-- or jump to another group X for composite commands         break; 
+      } 
+      break; 
+    } 
+} 
